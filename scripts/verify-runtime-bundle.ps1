@@ -25,7 +25,8 @@ if ($ExpectedRuntimeIdentifier -ne 'win-x64' -or $manifest.nativeLibrary -ne 'na
     throw 'Native library path does not match win-x64.'
 }
 if (@($manifest.dependencies).Count -eq 0) { throw 'Runtime dependencies are missing.' }
-$dependencyOutput = & dumpbin /DEPENDENTS (Join-Path $RuntimeRoot 'native/nlopt.dll') 2>&1
+$dumpbin = & (Join-Path $PSScriptRoot 'resolve-dumpbin.ps1')
+$dependencyOutput = & $dumpbin /DEPENDENTS (Join-Path $RuntimeRoot 'native/nlopt.dll') 2>&1
 if ($LASTEXITCODE -ne 0) { throw 'dumpbin dependency inspection failed.' }
 $actualDependencies = @(
     $dependencyOutput |

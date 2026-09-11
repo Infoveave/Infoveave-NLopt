@@ -80,7 +80,8 @@ foreach ($notice in $notices.GetEnumerator()) {
     Add-Content $noticesFile '```'
 }
 
-$dependencyOutput = & dumpbin /DEPENDENTS $nativeFile 2>&1
+$dumpbin = & (Join-Path $PSScriptRoot 'resolve-dumpbin.ps1')
+$dependencyOutput = & $dumpbin /DEPENDENTS $nativeFile 2>&1
 if ($LASTEXITCODE -ne 0) { throw 'dumpbin dependency inspection failed.' }
 $dependencies = @(
     $dependencyOutput |
