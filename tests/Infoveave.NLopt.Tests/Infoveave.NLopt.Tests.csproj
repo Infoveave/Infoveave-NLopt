@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <RootNamespace>Infoveave.NLopt.Tests</RootNamespace>
+    <AssemblyName>Infoveave.NLopt.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Infoveave.NLopt/Infoveave.NLopt.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(InfoveaveNLoptRuntimeAssetRoot)' != ''">
+    <Content Include="$(InfoveaveNLoptRuntimeAssetRoot)/**/*">
+      <Link>nlopt/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

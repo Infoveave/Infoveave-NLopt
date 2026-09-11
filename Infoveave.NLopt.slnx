@@ -9,4 +9,7 @@
   <Folder Name="/src/">
     <Project Path="src/Infoveave.NLopt/Infoveave.NLopt.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Infoveave.NLopt.Tests/Infoveave.NLopt.Tests.csproj" />
+  </Folder>
 </Solution>
