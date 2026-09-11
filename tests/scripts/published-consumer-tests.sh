@@ -16,6 +16,13 @@ package_directory="$temporary_directory/packages"
 package_cache="$temporary_directory/package-cache"
 cp -R "$repository_root/tests/consumers" "$consumer_root"
 mkdir -p "$package_directory" "$package_cache"
+if command -v cygpath >/dev/null 2>&1; then
+  runtime_root="$(cygpath -m "$runtime_root")"
+  consumer_root="$(cygpath -m "$consumer_root")"
+  package_directory="$(cygpath -m "$package_directory")"
+  package_cache="$(cygpath -m "$package_cache")"
+  export MSYS2_ARG_CONV_EXCL='*'
+fi
 feed_properties=("-p:RestoreSources=$package_source" "-p:RestorePackagesPath=$package_cache")
 
 dotnet restore "$consumer_root/ClassLibrary/ClassLibrary.csproj" "${feed_properties[@]}"

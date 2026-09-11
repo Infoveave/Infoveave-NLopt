@@ -31,6 +31,7 @@ grep -q 'publish-managed-package.sh' "$publish"
 grep -q 'packages: read' "$qualify"
 grep -q 'published-consumer-tests.sh' "$qualify"
 grep -q 'v2.11.0' "$qualify"
+grep -q "MSYS2_ARG_CONV_EXCL='\*'" "$repository_root/tests/scripts/published-consumer-tests.sh"
 grep -q 'hashlib.sha256' "$acquire"
 if grep -q 'shasum' "$acquire"; then
   echo "release acquisition must use the cross-platform Python checksum implementation" >&2
