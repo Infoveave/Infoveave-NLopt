@@ -23,14 +23,14 @@ if command -v cygpath >/dev/null 2>&1; then
   package_cache="$(cygpath -m "$package_cache")"
   export MSYS2_ARG_CONV_EXCL='*'
 fi
-feed_properties=("-p:RestoreSources=$package_source" "-p:RestorePackagesPath=$package_cache")
+feed_options=("--source" "$package_source" "--packages" "$package_cache")
 
-dotnet restore "$consumer_root/ClassLibrary/ClassLibrary.csproj" "${feed_properties[@]}"
-dotnet restore "$consumer_root/Direct/Direct.csproj" "${feed_properties[@]}"
-dotnet restore "$consumer_root/TransitiveLibrary/TransitiveLibrary.csproj" "${feed_properties[@]}"
+dotnet restore "$consumer_root/ClassLibrary/ClassLibrary.csproj" "${feed_options[@]}"
+dotnet restore "$consumer_root/Direct/Direct.csproj" "${feed_options[@]}"
+dotnet restore "$consumer_root/TransitiveLibrary/TransitiveLibrary.csproj" "${feed_options[@]}"
 dotnet pack "$consumer_root/TransitiveLibrary/TransitiveLibrary.csproj" --no-restore -c Release -o "$package_directory"
 dotnet restore "$consumer_root/TransitiveApp/TransitiveApp.csproj" \
-  "-p:RestoreSources=$package_directory;$package_source" "-p:RestorePackagesPath=$package_cache"
+  --source "$package_directory" --source "$package_source" --packages "$package_cache"
 
 offline_environment=(
   'http_proxy=http://127.0.0.1:9'
