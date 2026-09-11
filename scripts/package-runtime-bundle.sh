@@ -56,5 +56,6 @@ fi
 
 archive_hash="$(shasum -a 256 "$archive_file" | cut -d ' ' -f 1)"
 printf '%s  %s\n' "$archive_hash" "$archive_name" > "$archive_file.sha256"
+cp "$runtime_root/THIRD-PARTY-NOTICES.md" "$archive_file.THIRD-PARTY-NOTICES.md"
 
 echo "$archive_file"

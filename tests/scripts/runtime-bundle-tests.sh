@@ -69,6 +69,8 @@ test "$(basename "$archive_file")" = \
   "infoveave-nlopt-runtime-1-nlopt-2.11.0-$runtime_identifier.zip"
 test -s "$archive_file"
 test -s "$archive_file.sha256"
+test -s "$archive_file.THIRD-PARTY-NOTICES.md"
+grep -q 'SLSQP COPYRIGHT' "$archive_file.THIRD-PARTY-NOTICES.md"
 (
   cd "$(dirname "$archive_file")"
   shasum -a 256 -c "$(basename "$archive_file").sha256"

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Native assets are caller-supplied and are never downloaded by this package. -->
+  <PropertyGroup>
+    <InfoveaveNLoptNativeVersion Condition="'$(InfoveaveNLoptNativeVersion)' == ''">2.11.0</InfoveaveNLoptNativeVersion>
+    <InfoveaveNLoptRuntimeCompatibility Condition="'$(InfoveaveNLoptRuntimeCompatibility)' == ''">1</InfoveaveNLoptRuntimeCompatibility>
+    <InfoveaveNLoptOutputDirectoryName Condition="'$(InfoveaveNLoptOutputDirectoryName)' == ''">nlopt</InfoveaveNLoptOutputDirectoryName>
+  </PropertyGroup>
+
+  <Target Name="InfoveaveNLoptResolveRuntimeAssets"
+          BeforeTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true' And '$(InfoveaveNLoptRuntimeAssetSkip)' != 'true'">
+    <PropertyGroup>
+      <_IvnMaterialize>$(InfoveaveNLoptMaterializeAssets)</_IvnMaterialize>
+      <_IvnMaterialize Condition="'$(_IvnMaterialize)' == '' And ('$(OutputType)' == 'Exe' Or '$(OutputType)' == 'WinExe')">true</_IvnMaterialize>
+      <_IvnMaterialize Condition="'$(_IvnMaterialize)' == '' And ('$(IsTestProject)' == 'true' Or '$(IsTestingPlatformApplication)' == 'true')">true</_IvnMaterialize>
+      <_IvnMaterialize Condition="'$(_IvnMaterialize)' == ''">false</_IvnMaterialize>
+
+      <_IvnRid>$(InfoveaveNLoptRuntimeIdentifier)</_IvnRid>
+      <_IvnRid Condition="'$(_IvnRid)' == '' And '$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_IvnRid>
+      <_IvnArchitecture Condition="'$(_IvnRid)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString())</_IvnArchitecture>
+      <_IvnRid Condition="'$(_IvnRid)' == '' And $([MSBuild]::IsOSPlatform('Windows')) And '$(_IvnArchitecture)' == 'X64'">win-x64</_IvnRid>
+      <_IvnRid Condition="'$(_IvnRid)' == '' And $([MSBuild]::IsOSPlatform('Linux')) And '$(_IvnArchitecture)' == 'X64'">linux-x64</_IvnRid>
+      <_IvnRid Condition="'$(_IvnRid)' == '' And $([MSBuild]::IsOSPlatform('OSX')) And '$(_IvnArchitecture)' == 'Arm64'">osx-arm64</_IvnRid>
+
+      <_IvnNativeFile Condition="'$(_IvnRid)' == 'win-x64'">nlopt.dll</_IvnNativeFile>
+      <_IvnNativeFile Condition="'$(_IvnRid)' == 'linux-x64'">libnlopt.so</_IvnNativeFile>
+      <_IvnNativeFile Condition="'$(_IvnRid)' == 'osx-arm64'">libnlopt.dylib</_IvnNativeFile>
+      <_IvnSeparator>$([System.IO.Path]::DirectorySeparatorChar)</_IvnSeparator>
+      <_IvnAssetRoot Condition="'$(InfoveaveNLoptRuntimeAssetRoot)' != ''">$([System.IO.Path]::GetFullPath('$(InfoveaveNLoptRuntimeAssetRoot)'))</_IvnAssetRoot>
+      <_IvnSourceManifest>$(_IvnAssetRoot)$(_IvnSeparator)manifest.json</_IvnSourceManifest>
+      <_IvnSourceNative>$(_IvnAssetRoot)$(_IvnSeparator)native$(_IvnSeparator)$(_IvnNativeFile)</_IvnSourceNative>
+      <_IvnBuildOutputRoot>$(TargetDir)$(InfoveaveNLoptOutputDirectoryName)</_IvnBuildOutputRoot>
+      <_IvnPublishOutputRoot>$(PublishDir)$(_IvnSeparator)$(InfoveaveNLoptOutputDirectoryName)</_IvnPublishOutputRoot>
+    </PropertyGroup>
+
+    <Error Condition="'$(_IvnMaterialize)' == 'true' And '$(InfoveaveNLoptRuntimeAssetRoot)' == ''"
+           Text="Infoveave.NLopt: runtime assets are required for executable and test projects. Set InfoveaveNLoptRuntimeAssetRoot to an extracted, verified nlopt bundle; automatic downloads and system fallback are not permitted." />
+    <Error Condition="'$(_IvnMaterialize)' == 'true' And '$(_IvnNativeFile)' == ''"
+           Text="Infoveave.NLopt: unsupported runtime identifier '$(_IvnRid)'. Supported release RIDs: win-x64, linux-x64, osx-arm64." />
+    <Error Condition="'$(_IvnMaterialize)' == 'true' And !Exists('$(_IvnSourceManifest)')"
+           Text="Infoveave.NLopt: runtime manifest not found at '$(_IvnSourceManifest)'." />
+    <Error Condition="'$(_IvnMaterialize)' == 'true' And !Exists('$(_IvnSourceNative)')"
+           Text="Infoveave.NLopt: native library not found at '$(_IvnSourceNative)'." />
+
+    <ItemGroup Condition="'$(_IvnMaterialize)' == 'true'">
+      <_IvnRuntimeAsset Include="$(_IvnAssetRoot)/**/*" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="InfoveaveNLoptMaterializeBuildAssets"
+          AfterTargets="Build"
+          DependsOnTargets="InfoveaveNLoptResolveRuntimeAssets"
+          Condition="'$(_IvnMaterialize)' == 'true'">
+    <MakeDir Directories="$(_IvnBuildOutputRoot)" />
+    <Copy SourceFiles="@(_IvnRuntimeAsset)"
+          DestinationFiles="@(_IvnRuntimeAsset->'$(_IvnBuildOutputRoot)$(_IvnSeparator)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Message Importance="high"
+             Text="Infoveave.NLopt: materialized verified NLopt $(InfoveaveNLoptNativeVersion) assets for '$(_IvnRid)' from '$(_IvnAssetRoot)'." />
+  </Target>
+
+  <Target Name="InfoveaveNLoptMaterializePublishAssets"
+          AfterTargets="Publish"
+          DependsOnTargets="InfoveaveNLoptResolveRuntimeAssets"
+          Condition="'$(_IvnMaterialize)' == 'true'">
+    <MakeDir Directories="$(_IvnPublishOutputRoot)" />
+    <Copy SourceFiles="@(_IvnRuntimeAsset)"
+          DestinationFiles="@(_IvnRuntimeAsset->'$(_IvnPublishOutputRoot)$(_IvnSeparator)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

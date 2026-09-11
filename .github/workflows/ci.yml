@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CMAKE_VERSION: 4.4.3
+
+jobs:
+  native-managed:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            rid: linux-x64
+            cc: gcc-11
+            cxx: g++-11
+          - os: windows-2022
+            rid: win-x64
+            cc: ""
+            cxx: ""
+          - os: macos-15
+            rid: osx-arm64
+            cc: clang
+            cxx: clang++
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Install pinned CMake
+        run: python -m pip install "cmake==${{ env.CMAKE_VERSION }}"
+      - name: Acquire and build native runtime (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          set -euo pipefail
+          source_directory="$(bash scripts/download-native-source.sh artifacts/native-source)"
+          bash scripts/build-native.sh "${{ matrix.rid }}" "$source_directory" "artifacts/runtime-bundles/${{ matrix.rid }}"
+      - name: Acquire and build native runtime (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $sourceDirectory = ./scripts/download-native-source.ps1 -DestinationRoot artifacts/native-source
+          ./scripts/build-native.ps1 -RuntimeIdentifier win-x64 -SourceDirectory $sourceDirectory -OutputRoot artifacts/runtime-bundles/win-x64
+      - name: Native load, version, and solve
+        run: python tests/scripts/native-smoke.py "artifacts/runtime-bundles/${{ matrix.rid }}/nlopt" "${{ matrix.rid }}"
+      - name: Restore and build
+        shell: bash
+        run: |
+          dotnet restore Infoveave.NLopt.slnx
+          dotnet build Infoveave.NLopt.slnx --no-restore -c Release -warnaserror \
+            -p:InfoveaveNLoptRuntimeAssetRoot="$GITHUB_WORKSPACE/artifacts/runtime-bundles/${{ matrix.rid }}/nlopt"
+      - name: Managed/native tests
+        run: dotnet test --solution Infoveave.NLopt.slnx --no-build --no-restore --configuration Release
+      - name: Clean package consumers
+        shell: bash
+        env:
+          NLOPT_TEST_RUNTIME_ROOT: ${{ github.workspace }}/artifacts/runtime-bundles/${{ matrix.rid }}/nlopt
+          NLOPT_TEST_RID: ${{ matrix.rid }}
+        run: bash tests/scripts/consumer-tests.sh
+      - name: Package runtime release (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash scripts/package-runtime-bundle.sh "${{ matrix.rid }}"
+      - name: Package runtime release (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/package-runtime-bundle.ps1 -RuntimeIdentifier win-x64
+      - uses: actions/upload-artifact@v7
+        with:
+          name: runtime-${{ matrix.rid }}
+          path: artifacts/runtime-releases/*
+          if-no-files-found: error
+
+  managed-package:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build managed-only
+        run: |
+          dotnet restore Infoveave.NLopt.slnx
+          dotnet build Infoveave.NLopt.slnx --no-restore -c Release -warnaserror -p:InfoveaveNLoptRuntimeAssetSkip=true
+      - name: Verify package and repository contracts
+        run: |
+          bash tests/scripts/package-tests.sh
+          bash tests/scripts/release-tag-tests.sh
+          bash tests/scripts/windows-script-contract-tests.sh
+          bash tests/scripts/workflow-contract-tests.sh
+      - name: Pack artifacts
+        run: dotnet pack src/Infoveave.NLopt/Infoveave.NLopt.csproj --no-build -c Release -o artifacts/nupkg
+      - uses: actions/upload-artifact@v7
+        with:
+          name: managed-package
+          path: artifacts/nupkg/*
+          if-no-files-found: error

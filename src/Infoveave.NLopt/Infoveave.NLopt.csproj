@@ -5,7 +5,14 @@
     <RootNamespace>Infoveave.NLopt</RootNamespace>
     <Description>Safe managed bindings for NLopt. Native runtime bundles are acquired and verified separately.</Description>
     <PackageTags>nlopt;optimization;nativeinterop;infoveave</PackageTags>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <PackageReleaseNotes>Managed package $(ManagedPackageVersion) targets NLopt $(NloptNativeVersion) runtime compatibility $(NloptRuntimeCompatibility). Runtime assets are supplied explicitly and never downloaded by this package.</PackageReleaseNotes>
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="PACKAGE.md" Pack="true" PackagePath="\" />
+    <None Include="../../runtime/THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
+    <None Include="buildTransitive/Infoveave.NLopt.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
 </Project>

@@ -33,4 +33,5 @@ if ((Test-Path $archivePath) -or (Test-Path "$archivePath.sha256")) {
 Compress-Archive -Path $RuntimeRoot -DestinationPath $archivePath -CompressionLevel Optimal
 $archiveHash = (Get-FileHash $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
 "$archiveHash  $archiveName" | Set-Content "$archivePath.sha256" -Encoding ascii
+Copy-Item (Join-Path $RuntimeRoot 'THIRD-PARTY-NOTICES.md') "$archivePath.THIRD-PARTY-NOTICES.md"
 Write-Output $archivePath

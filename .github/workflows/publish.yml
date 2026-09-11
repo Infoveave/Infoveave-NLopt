@@ -1,0 +1,136 @@
+name: Publish packages and runtimes
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  CMAKE_VERSION: 4.4.3
+
+jobs:
+  runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            rid: linux-x64
+            cc: gcc-11
+            cxx: g++-11
+          - os: windows-2022
+            rid: win-x64
+            cc: ""
+            cxx: ""
+          - os: macos-15
+            rid: osx-arm64
+            cc: clang
+            cxx: clang++
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - run: python -m pip install "cmake==${{ env.CMAKE_VERSION }}"
+      - name: Build runtime (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          source_directory="$(bash scripts/download-native-source.sh artifacts/native-source)"
+          bash scripts/build-native.sh "${{ matrix.rid }}" "$source_directory" "artifacts/runtime-bundles/${{ matrix.rid }}"
+          bash scripts/package-runtime-bundle.sh "${{ matrix.rid }}"
+      - name: Build runtime (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $sourceDirectory = ./scripts/download-native-source.ps1 -DestinationRoot artifacts/native-source
+          ./scripts/build-native.ps1 -RuntimeIdentifier win-x64 -SourceDirectory $sourceDirectory -OutputRoot artifacts/runtime-bundles/win-x64
+          ./scripts/package-runtime-bundle.ps1 -RuntimeIdentifier win-x64
+      - name: Qualify native and managed package
+        shell: bash
+        env:
+          NLOPT_TEST_RUNTIME_ROOT: ${{ github.workspace }}/artifacts/runtime-bundles/${{ matrix.rid }}/nlopt
+          NLOPT_TEST_RID: ${{ matrix.rid }}
+        run: |
+          python tests/scripts/native-smoke.py "$NLOPT_TEST_RUNTIME_ROOT" "$NLOPT_TEST_RID"
+          dotnet restore Infoveave.NLopt.slnx
+          dotnet build Infoveave.NLopt.slnx --no-restore -c Release -warnaserror \
+            -p:InfoveaveNLoptRuntimeAssetRoot="$NLOPT_TEST_RUNTIME_ROOT"
+          dotnet test --solution Infoveave.NLopt.slnx --no-build --no-restore --configuration Release
+          bash tests/scripts/consumer-tests.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: runtime-${{ matrix.rid }}
+          path: artifacts/runtime-releases/*
+          if-no-files-found: error
+
+  managed-package:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: bash scripts/validate-release-tag.sh "$GITHUB_REF_NAME"
+      - name: Build and pack
+        run: |
+          dotnet restore Infoveave.NLopt.slnx
+          dotnet build Infoveave.NLopt.slnx --no-restore -c Release -warnaserror -p:InfoveaveNLoptRuntimeAssetSkip=true
+          dotnet pack src/Infoveave.NLopt/Infoveave.NLopt.csproj --no-build -c Release -o artifacts/nupkg
+          bash scripts/verify-nupkg.sh artifacts/nupkg
+      - uses: actions/upload-artifact@v7
+        with:
+          name: managed-package
+          path: artifacts/nupkg/*
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [runtime, managed-package]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: runtime-*
+          path: artifacts/runtime-releases
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: managed-package
+          path: artifacts/nupkg
+      - name: Publish immutable GitHub release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "Infoveave.NLopt ${GITHUB_REF_NAME#v}" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" artifacts/runtime-releases/*
+      - name: Publish managed package to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_file="$(find artifacts/nupkg -maxdepth 1 -name '*.nupkg' ! -name '*.snupkg' -print -quit)"
+          dotnet nuget push "$package_file" \
+            --source "https://nuget.pkg.github.com/${GITHUB_REPOSITORY_OWNER}/index.json" \
+            --api-key "$GITHUB_TOKEN"
