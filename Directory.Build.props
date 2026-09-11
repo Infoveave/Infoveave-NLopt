@@ -25,7 +25,7 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IsPackable>false</IsPackable>
 
-    <ManagedPackageVersion>1.0.0-preview.1</ManagedPackageVersion>
+    <ManagedPackageVersion>2.11.0</ManagedPackageVersion>
     <NloptNativeVersion>2.11.0</NloptNativeVersion>
     <NloptRuntimeCompatibility>1</NloptRuntimeCompatibility>
     <Version>$(ManagedPackageVersion)</Version>

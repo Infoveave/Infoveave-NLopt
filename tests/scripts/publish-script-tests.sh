@@ -89,18 +89,18 @@ SH
 chmod +x "$fake_bin/curl" "$fake_bin/dotnet"
 
 PATH="$fake_bin:$PATH" FAKE_REMOTE_ASSETS="$remote_assets" \
-  bash "$repository_root/scripts/publish-release-assets.sh" v1.0.0-preview.1 "$local_assets"
+  bash "$repository_root/scripts/publish-release-assets.sh" v2.11.0 "$local_assets"
 cmp "$local_assets/runtime.zip" "$remote_assets/runtime.zip"
 PATH="$fake_bin:$PATH" FAKE_REMOTE_ASSETS="$remote_assets" \
-  bash "$repository_root/scripts/publish-release-assets.sh" v1.0.0-preview.1 "$local_assets"
+  bash "$repository_root/scripts/publish-release-assets.sh" v2.11.0 "$local_assets"
 printf 'changed\n' > "$local_assets/runtime.zip"
 if PATH="$fake_bin:$PATH" FAKE_REMOTE_ASSETS="$remote_assets" \
-  bash "$repository_root/scripts/publish-release-assets.sh" v1.0.0-preview.1 "$local_assets" >/dev/null 2>&1; then
+  bash "$repository_root/scripts/publish-release-assets.sh" v2.11.0 "$local_assets" >/dev/null 2>&1; then
   echo 'expected changed published bytes to be rejected' >&2
   exit 1
 fi
 
-managed_package="$temporary_directory/Infoveave.NLopt.1.0.0-preview.1.nupkg"
+managed_package="$temporary_directory/Infoveave.NLopt.2.11.0.nupkg"
 printf 'managed package\n' > "$managed_package"
 publication_environment=(
   "PATH=$fake_bin:$PATH"

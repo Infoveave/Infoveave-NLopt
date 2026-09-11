@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally><PackageId>Consumer.TransitiveLibrary</PackageId><Version>1.0.0-preview.1</Version></PropertyGroup>
-  <ItemGroup><PackageReference Include="Infoveave.NLopt" Version="1.0.0-preview.1" /></ItemGroup>
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally><PackageId>Consumer.TransitiveLibrary</PackageId><Version>2.11.0</Version></PropertyGroup>
+  <ItemGroup><PackageReference Include="Infoveave.NLopt" Version="2.11.0" /></ItemGroup>
 </Project>

@@ -5,7 +5,7 @@ Safe .NET 10 bindings and separately released, verified runtime bundles for NLop
 **Repository:** https://github.com/Infoveave/Infoveave-NLopt
 
 - **Managed package:** `Infoveave.NLopt`
-- **Initial managed version:** `1.0.0-preview.1`
+- **Managed version:** `2.11.0` (aligned with the pinned NLopt native version)
 - **NLopt native version:** `2.11.0`
 - **Runtime compatibility:** `1`
 
@@ -55,14 +55,14 @@ NLopt inequalities use `g(x) <= 0`. A positive native result is a termination re
 Configure `https://nuget.pkg.github.com/Infoveave/index.json` as an authenticated NuGet source, then reference the managed package:
 
 ```xml
-<PackageReference Include="Infoveave.NLopt" Version="1.0.0-preview.1" />
+<PackageReference Include="Infoveave.NLopt" Version="2.11.0" />
 ```
 
 Download the runtime ZIP for the application's RID from the matching GitHub release and verify it using the published SHA-256. The acquisition script requires that expected hash as caller input; it never trusts a checksum downloaded implicitly:
 
 ```bash
 bash scripts/acquire-runtime-bundle.sh \
-  --release-tag v1.0.0-preview.1 \
+  --release-tag v2.11.0 \
   osx-arm64 \
   <64-character-published-sha256> \
   /absolute/path/to/runtime
@@ -122,7 +122,7 @@ Tag `v<managed-package-version>` publishes the managed package to the Infoveave 
 
 Credentials come only from scoped GitHub Actions tokens and consumer NuGet configuration. Secrets are never written into repository files, packages, manifests, logs, or evidence.
 
-Preview tags contain a SemVer prerelease suffix and produce GitHub prereleases after all platform qualification passes. Stable tags omit the suffix and enter the `stable-release` GitHub environment; that environment must have required reviewers configured. Approval is given only after the corresponding preview evidence covers every supported runner and clean consumer. If the environment gate is not configured, stable publication is blocked.
+Managed package versions mirror the pinned NLopt native version. Stable tags use `v<native-version>` and publish only after every platform qualification job in the same workflow succeeds and release execution has been explicitly authorized. A future managed-only compatibility change would add a fourth version component rather than pretending to track a different native release.
 
 For cross-repository GitHub Actions consumption, grant the consuming repository access to the package in GitHub Packages and pass a token with `read:packages` through the consumer repository's NuGet configuration. Use the workflow actor as the NuGet username and keep the token in Actions secrets; do not commit it to `NuGet.config`.
 

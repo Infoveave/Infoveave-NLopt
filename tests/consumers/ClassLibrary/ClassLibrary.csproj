@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally></PropertyGroup>
-  <ItemGroup><PackageReference Include="Infoveave.NLopt" Version="1.0.0-preview.1" /></ItemGroup>
+  <ItemGroup><PackageReference Include="Infoveave.NLopt" Version="2.11.0" /></ItemGroup>
 </Project>

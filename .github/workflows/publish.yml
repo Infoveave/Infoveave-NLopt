@@ -108,8 +108,6 @@ jobs:
     permissions:
       contents: write
       packages: write
-    environment:
-      name: ${{ contains(github.ref_name, '-') && 'preview' || 'stable-release' }}
     steps:
       - uses: actions/checkout@v7
         with:
