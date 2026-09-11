@@ -30,7 +30,7 @@ dotnet restore "$consumer_root/Direct/Direct.csproj" "${feed_options[@]}"
 dotnet restore "$consumer_root/TransitiveLibrary/TransitiveLibrary.csproj" "${feed_options[@]}"
 dotnet pack "$consumer_root/TransitiveLibrary/TransitiveLibrary.csproj" --no-restore -c Release -o "$package_directory"
 dotnet restore "$consumer_root/TransitiveApp/TransitiveApp.csproj" \
-  --source "$package_directory" --source "$package_source" --packages "$package_cache"
+  --source "$package_directory" --packages "$package_cache"
 
 offline_environment=(
   'http_proxy=http://127.0.0.1:9'
