@@ -54,7 +54,18 @@ elif [ ! -f "$archive_file" ]; then
   exit 1
 fi
 
-actual_hash="$(shasum -a 256 "$archive_file" | cut -d ' ' -f 1)"
+actual_hash="$(python3 - "$archive_file" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+digest = hashlib.sha256()
+with pathlib.Path(sys.argv[1]).open("rb") as archive:
+    for block in iter(lambda: archive.read(1024 * 1024), b""):
+        digest.update(block)
+print(digest.hexdigest())
+PY
+)"
 if [ "$actual_hash" != "$expected_hash" ]; then
   echo "error: SHA-256 mismatch for NLopt runtime archive" >&2
   echo "expected: $expected_hash" >&2

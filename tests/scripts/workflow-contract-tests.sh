@@ -5,6 +5,7 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ci="$repository_root/.github/workflows/ci.yml"
 publish="$repository_root/.github/workflows/publish.yml"
 qualify="$repository_root/.github/workflows/qualify-release.yml"
+acquire="$repository_root/scripts/acquire-runtime-bundle.sh"
 test -s "$ci"
 test -s "$publish"
 test -s "$qualify"
@@ -30,6 +31,11 @@ grep -q 'publish-managed-package.sh' "$publish"
 grep -q 'packages: read' "$qualify"
 grep -q 'published-consumer-tests.sh' "$qualify"
 grep -q 'v2.11.0' "$qualify"
+grep -q 'hashlib.sha256' "$acquire"
+if grep -q 'shasum' "$acquire"; then
+  echo "release acquisition must use the cross-platform Python checksum implementation" >&2
+  exit 1
+fi
 test "$(grep -c 'contents: write' "$publish")" -eq 1
 test "$(grep -c 'packages: write' "$publish")" -eq 1
 test "$(grep -c 'persist-credentials: false' "$publish")" -eq 3
