@@ -1,0 +1,58 @@
+name: Qualify published release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  published-consumer:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            rid: linux-x64
+            sha256: a93dbf4655792cd5ec884474151bd98a2ec8045459194cfc1e5aff0d38a92c51
+          - os: windows-2022
+            rid: win-x64
+            sha256: 6dcc4ec04871cf4ec523acb389f9284336c17d9e8397c3f7022cf87bd7f0554b
+          - os: macos-15
+            rid: osx-arm64
+            sha256: 0d82a32da125a0e9acf56134b86bdadc392245626572bcb49a3ae8ce2689bad6
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Configure scoped package access
+        shell: bash
+        env:
+          PACKAGE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/${GITHUB_REPOSITORY_OWNER}/index.json" \
+            --name infoveave-release \
+            --username "$GITHUB_ACTOR" \
+            --password "$PACKAGE_TOKEN" \
+            --store-password-in-clear-text
+      - name: Acquire published runtime and qualify published package
+        shell: bash
+        env:
+          NLOPT_TEST_RID: ${{ matrix.rid }}
+          NLOPT_TEST_MANAGED_PACKAGE_SOURCE: https://nuget.pkg.github.com/Infoveave/index.json
+        run: |
+          runtime_root="$(bash scripts/acquire-runtime-bundle.sh \
+            --release-tag v2.11.0 \
+            "$NLOPT_TEST_RID" \
+            "${{ matrix.sha256 }}" \
+            "$RUNNER_TEMP/infoveave-nlopt-runtime")"
+          export NLOPT_TEST_RUNTIME_ROOT="$runtime_root"
+          bash tests/scripts/published-consumer-tests.sh

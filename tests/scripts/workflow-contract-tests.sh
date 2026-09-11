@@ -4,8 +4,10 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ci="$repository_root/.github/workflows/ci.yml"
 publish="$repository_root/.github/workflows/publish.yml"
+qualify="$repository_root/.github/workflows/qualify-release.yml"
 test -s "$ci"
 test -s "$publish"
+test -s "$qualify"
 
 for workflow in "$ci" "$publish"; do
   grep -q 'ubuntu-22.04' "$workflow"
@@ -25,6 +27,9 @@ grep -q 'permissions:' "$ci"
 grep -q 'contents: read' "$ci"
 grep -q 'publish-release-assets.sh' "$publish"
 grep -q 'publish-managed-package.sh' "$publish"
+grep -q 'packages: read' "$qualify"
+grep -q 'published-consumer-tests.sh' "$qualify"
+grep -q 'v2.11.0' "$qualify"
 test "$(grep -c 'contents: write' "$publish")" -eq 1
 test "$(grep -c 'packages: write' "$publish")" -eq 1
 test "$(grep -c 'persist-credentials: false' "$publish")" -eq 3
