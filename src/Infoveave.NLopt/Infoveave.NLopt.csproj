@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Infoveave.NLopt</PackageId>
+    <AssemblyName>Infoveave.NLopt</AssemblyName>
+    <RootNamespace>Infoveave.NLopt</RootNamespace>
+    <Description>Safe managed bindings for NLopt. Native runtime bundles are acquired and verified separately.</Description>
+    <PackageTags>nlopt;optimization;nativeinterop;infoveave</PackageTags>
+    <IsPackable>true</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+</Project>

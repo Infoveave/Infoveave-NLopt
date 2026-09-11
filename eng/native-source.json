@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "nativeVersion": "2.11.0",
+  "tag": "v2.11.0",
+  "commit": "88c424d4f458412787df96fcc95218acbca224fd",
+  "archiveUrl": "https://github.com/stevengj/nlopt/archive/refs/tags/v2.11.0.tar.gz",
+  "archiveSha256": "53e552d83e9294d67db37f0f4a23f15933a9ef698485301a18b98b40004cf0de",
+  "referenceWrapper": {
+    "repository": "https://github.com/BrannonKing/NLoptNet",
+    "commit": "659e7f4dd492482510ddd12606832dfed8e183aa",
+    "use": "reference-only"
+  }
+}
+
