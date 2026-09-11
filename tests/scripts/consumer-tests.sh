@@ -4,6 +4,9 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 runtime_root="${NLOPT_TEST_RUNTIME_ROOT:?Set NLOPT_TEST_RUNTIME_ROOT to an extracted, verified nlopt directory}"
 runtime_identifier="${NLOPT_TEST_RID:-osx-arm64}"
+if command -v cygpath >/dev/null 2>&1; then
+  runtime_root="$(cygpath -u "$runtime_root")"
+fi
 temporary_directory="$(mktemp -d)"
 trap 'rm -rf "$temporary_directory"' EXIT
 package_directory="$temporary_directory/packages"
@@ -13,6 +16,11 @@ consumer_root="$temporary_directory/consumers"
 dotnet pack "$repository_root/src/Infoveave.NLopt/Infoveave.NLopt.csproj" -c Release -o "$package_directory"
 cp -R "$repository_root/tests/consumers" "$consumer_root"
 common_properties=("-p:RestoreSources=$package_directory" "-p:RestorePackagesPath=$package_cache")
+if [ "$runtime_identifier" = 'linux-x64' ]; then
+  wrong_runtime_identifier='osx-arm64'
+else
+  wrong_runtime_identifier='linux-x64'
+fi
 
 dotnet pack "$consumer_root/TransitiveLibrary/TransitiveLibrary.csproj" -c Release -o "$package_directory" \
   "${common_properties[@]}"
@@ -38,7 +46,8 @@ grep -q 'verified NLopt runtime manifest was not found' \
   "$temporary_directory/no-fallback.stdout" "$temporary_directory/no-fallback.stderr"
 
 if dotnet build "$consumer_root/Direct/Direct.csproj" -c Release "${common_properties[@]}" \
-  "-p:InfoveaveNLoptRuntimeAssetRoot=$runtime_root" -p:InfoveaveNLoptRuntimeIdentifier=linux-x64 \
+  "-p:InfoveaveNLoptRuntimeAssetRoot=$runtime_root" \
+  "-p:InfoveaveNLoptRuntimeIdentifier=$wrong_runtime_identifier" \
   >"$temporary_directory/wrong-rid.stdout" 2>"$temporary_directory/wrong-rid.stderr"; then
   echo "expected a mismatched RID bundle to fail" >&2
   exit 1

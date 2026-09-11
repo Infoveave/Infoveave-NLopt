@@ -252,14 +252,15 @@ public sealed unsafe class NloptOptimizer : IDisposable
 
     private static unsafe double InvokeCallback(uint dimensions, double* variables, double* gradient, nint data)
     {
-        var registration = (CallbackRegistration)GCHandle.FromIntPtr(data).Target!;
-        if (!registration.Owner.TryGetTarget(out var owner))
-        {
-            return double.NaN;
-        }
-
+        NloptOptimizer? owner = null;
         try
         {
+            var registration = (CallbackRegistration?)GCHandle.FromIntPtr(data).Target;
+            if (registration is null || !registration.Owner.TryGetTarget(out owner))
+            {
+                return double.NaN;
+            }
+
             if (owner.ShouldStop())
             {
                 NativeMethods.ForceStop(owner.handle);
@@ -274,11 +275,21 @@ public sealed unsafe class NloptOptimizer : IDisposable
         }
         catch (Exception exception)
         {
-            Interlocked.CompareExchange(
-                ref owner.callbackException,
-                ExceptionDispatchInfo.Capture(exception),
-                null);
-            NativeMethods.ForceStop(owner.handle);
+            if (owner is not null)
+            {
+                try
+                {
+                    Interlocked.CompareExchange(
+                        ref owner.callbackException,
+                        ExceptionDispatchInfo.Capture(exception),
+                        null);
+                    NativeMethods.ForceStop(owner.handle);
+                }
+                catch
+                {
+                    // Nothing managed may escape a callback invoked by native code.
+                }
+            }
             return double.NaN;
         }
     }

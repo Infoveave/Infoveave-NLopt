@@ -20,7 +20,15 @@ for workflow in "$ci" "$publish"; do
 done
 grep -q 'actions/upload-artifact@v7' "$ci"
 grep -q 'actions/download-artifact@v8' "$publish"
-grep -q 'nuget.pkg.github.com' "$publish"
+grep -q 'nuget.pkg.github.com' "$repository_root/scripts/publish-managed-package.sh"
+grep -q 'permissions:' "$ci"
+grep -q 'contents: read' "$ci"
+grep -q 'publish-release-assets.sh' "$publish"
+grep -q 'publish-managed-package.sh' "$publish"
+test "$(grep -c 'contents: write' "$publish")" -eq 1
+test "$(grep -c 'packages: write' "$publish")" -eq 1
+test "$(grep -c 'persist-credentials: false' "$publish")" -eq 3
+grep -q 'stable-release' "$publish"
 if grep -Eq 'ubuntu-latest|windows-latest|macos-latest|--skip-duplicate|--clobber' "$ci" "$publish"; then
   echo "workflows must pin runners and reject replacement of published bytes" >&2
   exit 1

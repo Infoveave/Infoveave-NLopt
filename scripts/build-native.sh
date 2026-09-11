@@ -36,7 +36,7 @@ case "$runtime_identifier" in
     native_name="libnlopt.dylib"
     platform_options=(
       "-DCMAKE_OSX_ARCHITECTURES=arm64"
-      "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0"
+      "-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0"
     )
     ;;
   *)
@@ -79,6 +79,9 @@ fi
 
 mkdir -p "$runtime_root/native"
 cp -L "$installed_native" "$runtime_root/native/$native_name"
+if [ "$runtime_identifier" = "osx-arm64" ]; then
+  install_name_tool -id "@rpath/$native_name" "$runtime_root/native/$native_name"
+fi
 
 notices_file="$runtime_root/THIRD-PARTY-NOTICES.md"
 {

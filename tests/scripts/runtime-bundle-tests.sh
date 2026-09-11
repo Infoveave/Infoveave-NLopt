@@ -4,6 +4,11 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source_archive="${NLOPT_TEST_SOURCE_ARCHIVE:?Set NLOPT_TEST_SOURCE_ARCHIVE to the pinned NLopt source archive}"
 runtime_identifier="${NLOPT_TEST_RID:-osx-arm64}"
+if [ "$runtime_identifier" = 'linux-x64' ]; then
+  wrong_runtime_identifier='osx-arm64'
+else
+  wrong_runtime_identifier='linux-x64'
+fi
 temporary_directory="$(mktemp -d)"
 trap 'rm -rf "$temporary_directory"' EXIT
 
@@ -23,7 +28,7 @@ verify()
 
 verify "$runtime_root" "$runtime_identifier" "2.11.0" "managed-api-v1"
 
-if verify "$runtime_root" "linux-x64" "2.11.0" "managed-api-v1" >/dev/null 2>&1; then
+if verify "$runtime_root" "$wrong_runtime_identifier" "2.11.0" "managed-api-v1" >/dev/null 2>&1; then
   echo "expected wrong RID to be rejected" >&2
   exit 1
 fi
@@ -78,5 +83,41 @@ grep -q 'SLSQP COPYRIGHT' "$archive_file.THIRD-PARTY-NOTICES.md"
 mkdir "$temporary_directory/extracted"
 unzip -q "$archive_file" -d "$temporary_directory/extracted"
 verify "$temporary_directory/extracted/nlopt" "$runtime_identifier" "2.11.0" "managed-api-v1"
+
+wrong_version_root="$temporary_directory/wrong-version"
+cp -R "$runtime_root" "$wrong_version_root"
+python3 - "$wrong_version_root/manifest.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+manifest = json.load(open(path, encoding="utf-8"))
+manifest["nativeVersion"] = "9.9.9"
+with open(path, "w", encoding="utf-8") as output:
+    json.dump(manifest, output)
+PY
+if bash "$repository_root/scripts/package-runtime-bundle.sh" \
+  "$runtime_identifier" "$wrong_version_root" "$temporary_directory/wrong-version-release" >/dev/null 2>&1; then
+  echo "expected packaging to reject an unapproved native version" >&2
+  exit 1
+fi
+
+wrong_compatibility_root="$temporary_directory/wrong-compatibility"
+cp -R "$runtime_root" "$wrong_compatibility_root"
+python3 - "$wrong_compatibility_root/manifest.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+manifest = json.load(open(path, encoding="utf-8"))
+manifest["runtimeCompatibility"] = "managed-api-v9"
+with open(path, "w", encoding="utf-8") as output:
+    json.dump(manifest, output)
+PY
+if bash "$repository_root/scripts/package-runtime-bundle.sh" \
+  "$runtime_identifier" "$wrong_compatibility_root" "$temporary_directory/wrong-compatibility-release" >/dev/null 2>&1; then
+  echo "expected packaging to reject an unapproved runtime compatibility" >&2
+  exit 1
+fi
 
 echo "runtime-bundle-tests: PASS"

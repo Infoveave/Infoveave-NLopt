@@ -9,6 +9,9 @@ on:
 env:
   CMAKE_VERSION: 4.4.3
 
+permissions:
+  contents: read
+
 jobs:
   native-managed:
     strategy:
@@ -30,6 +33,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
@@ -88,6 +93,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
@@ -101,6 +108,7 @@ jobs:
           bash tests/scripts/release-tag-tests.sh
           bash tests/scripts/windows-script-contract-tests.sh
           bash tests/scripts/workflow-contract-tests.sh
+          bash tests/scripts/publish-script-tests.sh
       - name: Pack artifacts
         run: dotnet pack src/Infoveave.NLopt/Infoveave.NLopt.csproj --no-build -c Release -o artifacts/nupkg
       - uses: actions/upload-artifact@v7

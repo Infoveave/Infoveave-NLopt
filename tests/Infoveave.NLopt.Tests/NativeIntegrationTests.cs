@@ -154,11 +154,87 @@ public sealed class NativeIntegrationTests
         Assert.False(optimizerReference.IsAlive);
     }
 
+    [Fact]
+    public void CallbackSurvivesGarbageCollectionPressureDuringOptimization()
+    {
+        using var optimizer = new NloptOptimizer(NloptAlgorithm.Cobyla, 1);
+        optimizer.SetLowerBounds([0.0]);
+        optimizer.SetUpperBounds([4.0]);
+        optimizer.SetMinObjective((variables, _) =>
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            return Math.Pow(variables[0] - 2.0, 2.0);
+        });
+        optimizer.SetParameterTolerance(1e-10, 1e-8);
+        optimizer.SetMaximumEvaluations(200);
+        double[] variables = [0.5];
+
+        var result = optimizer.Optimize(variables, TestContext.Current.CancellationToken);
+
+        Assert.True((int)result.Result > 0, result.Result.ToString());
+        Assert.Equal(2.0, variables[0], 5);
+    }
+
+    [Fact]
+    public void RepeatedCreateAndDisposeIsSafe()
+    {
+        for (var iteration = 0; iteration < 100; iteration++)
+        {
+            using var optimizer = new NloptOptimizer(NloptAlgorithm.Cobyla, 1);
+            optimizer.SetMaximumEvaluations(10);
+        }
+    }
+
+    [Fact]
+    public async Task IndependentOptimizersCanSolveConcurrently()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var rendezvous = new CountdownEvent(2);
+        var first = Task.Run(() => SolveNear(1.0, cancellationToken, rendezvous), cancellationToken);
+        var second = Task.Run(() => SolveNear(3.0, cancellationToken, rendezvous), cancellationToken);
+
+        var results = await Task.WhenAll(first, second);
+
+        Assert.Equal(1.0, results[0], 5);
+        Assert.Equal(3.0, results[1], 5);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference CreateUndisposedOptimizer()
     {
         var optimizer = new NloptOptimizer(NloptAlgorithm.Cobyla, 1);
         optimizer.SetMinObjective((variables, _) => variables[0] * variables[0]);
         return new WeakReference(optimizer);
+    }
+
+    private static double SolveNear(
+        double target,
+        CancellationToken cancellationToken,
+        CountdownEvent? rendezvous = null)
+    {
+        var firstCallback = true;
+        using var optimizer = new NloptOptimizer(NloptAlgorithm.Cobyla, 1);
+        optimizer.SetLowerBounds([0.0]);
+        optimizer.SetUpperBounds([4.0]);
+        optimizer.SetMinObjective((variables, _) =>
+        {
+            if (firstCallback && rendezvous is not null)
+            {
+                firstCallback = false;
+                rendezvous.Signal();
+                if (!rendezvous.Wait(TimeSpan.FromSeconds(10), cancellationToken))
+                {
+                    throw new TimeoutException("Independent optimizer callbacks did not overlap.");
+                }
+            }
+            return Math.Pow(variables[0] - target, 2.0);
+        });
+        optimizer.SetParameterTolerance(1e-10, 1e-8);
+        optimizer.SetMaximumEvaluations(200);
+        double[] variables = [2.0];
+        var result = optimizer.Optimize(variables, cancellationToken);
+        Assert.True((int)result.Result > 0, result.Result.ToString());
+        return variables[0];
     }
 }

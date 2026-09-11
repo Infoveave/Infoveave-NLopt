@@ -18,19 +18,9 @@ if [ ! -f "$manifest_file" ]; then
   exit 1
 fi
 
-read_manifest()
-{
-  python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))[sys.argv[2]])' \
-    "$manifest_file" "$1"
-}
-
-native_version="$(read_manifest nativeVersion)"
-runtime_compatibility="$(read_manifest runtimeCompatibility)"
-if [[ "$runtime_compatibility" != managed-api-v* ]]; then
-  echo "error: unsupported runtime compatibility: $runtime_compatibility" >&2
-  exit 1
-fi
-compatibility_version="${runtime_compatibility#managed-api-v}"
+native_version='2.11.0'
+runtime_compatibility='managed-api-v1'
+compatibility_version='1'
 
 bash "$script_directory/verify-runtime-bundle.sh" \
   "$runtime_root" \
@@ -45,7 +35,7 @@ archive_file="$output_directory/$archive_name"
 runtime_parent="$(cd "$runtime_root/.." && pwd)"
 runtime_directory_name="$(basename "$runtime_root")"
 
-if [ -e "$archive_file" ] || [ -e "$archive_file.sha256" ]; then
+if [ -e "$archive_file" ] || [ -e "$archive_file.sha256" ] || [ -e "$archive_file.THIRD-PARTY-NOTICES.md" ]; then
   echo "error: release archive already exists: $archive_file" >&2
   exit 1
 fi

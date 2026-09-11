@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -102,6 +103,18 @@ architecture_markers = {
     "osx-arm64": ("Mach-O 64-bit", "arm64"),
 }
 require(all(marker in description for marker in architecture_markers[expected_rid]), "native library architecture does not match the RID")
+
+if expected_rid == "linux-x64":
+    dynamic = subprocess.run(["readelf", "-d", str(native_path)], check=True, capture_output=True, text=True).stdout
+    actual_dependencies = sorted(set(re.findall(r"Shared library: \[([^]]+)\]", dynamic)))
+elif expected_rid == "osx-arm64":
+    linked = subprocess.run(["otool", "-L", str(native_path)], check=True, capture_output=True, text=True).stdout.splitlines()
+    actual_dependencies = sorted({line.strip().split()[0] for line in linked[2:] if line.strip()})
+    load_commands = subprocess.run(["otool", "-l", str(native_path)], check=True, capture_output=True, text=True).stdout
+    require(re.search(r"\bminos 15\.0\b", load_commands) is not None, "macOS deployment target is not 15.0")
+else:
+    actual_dependencies = sorted(manifest["dependencies"])
+require(actual_dependencies == sorted(manifest["dependencies"]), "runtime dependency declarations do not match the native library")
 PY
 
 echo "verified runtime bundle: $runtime_root"

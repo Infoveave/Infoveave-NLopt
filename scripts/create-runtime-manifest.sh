@@ -47,7 +47,7 @@ case "$runtime_identifier" in
     ;;
   osx-arm64)
     otool -L "$native_file" \
-      | tail -n +2 \
+      | tail -n +3 \
       | awk '{print $1}' \
       | sort -u > "$dependencies_file"
     ;;
@@ -131,7 +131,7 @@ manifest = {
     ],
 }
 if rid == "osx-arm64":
-    manifest["toolchain"]["deploymentTarget"] = "14.0"
+    manifest["toolchain"]["deploymentTarget"] = "15.0"
 
 manifest_path = os.path.join(runtime_root, "manifest.json")
 with open(manifest_path, "w", encoding="utf-8") as output:

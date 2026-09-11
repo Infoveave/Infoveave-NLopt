@@ -46,6 +46,15 @@ for package_file in "$package_directory"/Infoveave.NLopt.*.nupkg; do
     echo "error: managed package license declaration is missing" >&2
     exit 1
   }
+  content_scan="$(mktemp)"
+  unzip -p "$package_file" | strings > "$content_scan"
+  if grep -Eai \
+    'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}|api[_-]?key[[:space:]]*[:=]|password[[:space:]]*[:=]' \
+    "$content_scan" >/dev/null; then
+    echo "error: managed package contains text resembling a credential or private key" >&2
+    exit 1
+  fi
+  rm -f "$content_scan"
 done
 
 if [ "$found" -eq 0 ]; then

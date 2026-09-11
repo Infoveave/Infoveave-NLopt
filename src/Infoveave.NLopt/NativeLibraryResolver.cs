@@ -85,6 +85,9 @@ internal static class NativeLibraryResolver
             Require(root.GetProperty("nativeVersion").GetString() == "2.11.0", "native version");
             Require(root.GetProperty("rid").GetString() == expectedRid, "runtime identifier");
             Require(root.GetProperty("nativeLibrary").GetString() == expectedNativePath, "native library path");
+            var source = root.GetProperty("source");
+            Require(source.GetProperty("commit").GetString() == "88c424d4f458412787df96fcc95218acbca224fd", "source commit");
+            Require(source.GetProperty("archiveSha256").GetString() == "53e552d83e9294d67db37f0f4a23f15933a9ef698485301a18b98b40004cf0de", "source archive SHA-256");
 
             var nativeEntry = root.GetProperty("files")
                 .EnumerateArray()

@@ -6,8 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 env:
   CMAKE_VERSION: 4.4.3
@@ -33,6 +32,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
@@ -79,6 +80,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
@@ -91,6 +94,7 @@ jobs:
           dotnet build Infoveave.NLopt.slnx --no-restore -c Release -warnaserror -p:InfoveaveNLoptRuntimeAssetSkip=true
           dotnet pack src/Infoveave.NLopt/Infoveave.NLopt.csproj --no-build -c Release -o artifacts/nupkg
           bash scripts/verify-nupkg.sh artifacts/nupkg
+          bash tests/scripts/publish-script-tests.sh
       - uses: actions/upload-artifact@v7
         with:
           name: managed-package
@@ -101,8 +105,15 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [runtime, managed-package]
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      packages: write
+    environment:
+      name: ${{ contains(github.ref_name, '-') && 'preview' || 'stable-release' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
@@ -120,17 +131,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          set -euo pipefail
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
-            gh release create "$GITHUB_REF_NAME" --title "Infoveave.NLopt ${GITHUB_REF_NAME#v}" --generate-notes
-          gh release upload "$GITHUB_REF_NAME" artifacts/runtime-releases/*
+          bash scripts/publish-release-assets.sh "$GITHUB_REF_NAME" artifacts/runtime-releases
       - name: Publish managed package to GitHub Packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          set -euo pipefail
           package_file="$(find artifacts/nupkg -maxdepth 1 -name '*.nupkg' ! -name '*.snupkg' -print -quit)"
-          dotnet nuget push "$package_file" \
-            --source "https://nuget.pkg.github.com/${GITHUB_REPOSITORY_OWNER}/index.json" \
-            --api-key "$GITHUB_TOKEN"
+          bash scripts/publish-managed-package.sh "$package_file"

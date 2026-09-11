@@ -17,16 +17,15 @@ if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
 }
 $manifestPath = Join-Path $RuntimeRoot 'manifest.json'
 if (-not (Test-Path $manifestPath -PathType Leaf)) { throw "Runtime manifest not found: $manifestPath" }
-$manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-
-$verifyArguments = @($RuntimeRoot, $RuntimeIdentifier, $manifest.nativeVersion, $manifest.runtimeCompatibility)
+$nativeVersion = '2.11.0'
+$runtimeCompatibility = 'managed-api-v1'
+$verifyArguments = @($RuntimeRoot, $RuntimeIdentifier, $nativeVersion, $runtimeCompatibility)
 & (Join-Path $PSScriptRoot 'verify-runtime-bundle.ps1') @verifyArguments
 
-$compatibilityVersion = $manifest.runtimeCompatibility -replace '^managed-api-v', ''
-$archiveName = "infoveave-nlopt-runtime-$compatibilityVersion-nlopt-$($manifest.nativeVersion)-$RuntimeIdentifier.zip"
+$archiveName = "infoveave-nlopt-runtime-1-nlopt-$nativeVersion-$RuntimeIdentifier.zip"
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $archivePath = Join-Path ([IO.Path]::GetFullPath($OutputDirectory)) $archiveName
-if ((Test-Path $archivePath) -or (Test-Path "$archivePath.sha256")) {
+if ((Test-Path $archivePath) -or (Test-Path "$archivePath.sha256") -or (Test-Path "$archivePath.THIRD-PARTY-NOTICES.md")) {
     throw "Release archive already exists: $archivePath"
 }
 

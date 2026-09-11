@@ -25,11 +25,29 @@ if ($ExpectedRuntimeIdentifier -ne 'win-x64' -or $manifest.nativeLibrary -ne 'na
     throw 'Native library path does not match win-x64.'
 }
 if (@($manifest.dependencies).Count -eq 0) { throw 'Runtime dependencies are missing.' }
+$dependencyOutput = & dumpbin /DEPENDENTS (Join-Path $RuntimeRoot 'native/nlopt.dll') 2>&1
+if ($LASTEXITCODE -ne 0) { throw 'dumpbin dependency inspection failed.' }
+$actualDependencies = @(
+    $dependencyOutput |
+        ForEach-Object { $_.ToString().Trim() } |
+        Where-Object { $_ -match '^[A-Za-z0-9_.-]+\.dll$' } |
+        Sort-Object -Unique
+)
+if (($actualDependencies -join '|') -ne ((@($manifest.dependencies) | Sort-Object) -join '|')) {
+    throw 'Runtime dependency declarations do not match nlopt.dll.'
+}
 
 $rootPath = [IO.Path]::GetFullPath($RuntimeRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 $expectedFiles = @('THIRD-PARTY-NOTICES.md', 'native/nlopt.dll')
 $manifestFiles = @($manifest.files)
 if ($manifestFiles.Count -ne $expectedFiles.Count) { throw 'Bundle file inventory is incomplete.' }
+$manifestFilePaths = @($manifestFiles | ForEach-Object { [string]$_.path })
+if (($manifestFilePaths | Sort-Object -Unique).Count -ne $manifestFilePaths.Count) {
+    throw 'Bundle manifest contains duplicate file entries.'
+}
+if (($manifestFilePaths | Sort-Object) -join '|' -ne (($expectedFiles | Sort-Object) -join '|')) {
+    throw 'Bundle manifest file inventory does not match the required files.'
+}
 foreach ($entry in $manifestFiles) {
     $relativePath = [string]$entry.path
     if ([IO.Path]::IsPathRooted($relativePath) -or (($relativePath -split '[/\\]') -contains '..')) {
